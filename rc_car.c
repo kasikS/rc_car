@@ -25,15 +25,21 @@
 #include "delay_timer.h"
 #include "servo.h"
 
-uint32_t itoa(uint32_t number, uint8_t stringArray[])
+uint32_t itoa(uint32_t number, char stringArray[])
 {
 	uint32_t temp = 0;
 	uint32_t digits = 0;
 	uint32_t i = 0;
 
+	if (number == 0)
+	{
+		stringArray[0] = '0';
+		digits++;
+	}
+
 	while(number!=0)
 	{
-		stringArray[digits] = number % 10;
+		stringArray[digits] = '0' + number % 10;
 		number = number/10;
 		digits++;
 	}
@@ -47,6 +53,106 @@ uint32_t itoa(uint32_t number, uint8_t stringArray[])
 
 	return digits;
 }
+
+void serial_init(uint32_t baud)
+{
+    rcc_periph_clock_enable(RCC_GPIOA);
+    rcc_periph_clock_enable(RCC_USART1);
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+    		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
+
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+        		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_RX);
+
+    usart_set_baudrate(USART1, baud);
+    usart_set_databits(USART1, 8);
+    usart_set_stopbits(USART1, USART_STOPBITS_1);
+    usart_set_parity(USART1, USART_PARITY_NONE);
+    usart_set_mode(USART1, USART_MODE_TX_RX);
+    usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
+    usart_enable(USART1);
+}
+
+void serial_putc(const char c)
+{
+		/* sends a single character*/
+		usart_send_blocking(USART1, c);
+}
+
+void serial_write(const char *string, int len)
+{
+	int i;
+	for(i=0; i<len; i++)
+	{
+		/* Puts data into buffer, sends the data*/
+		serial_putc(*string);
+		++string;
+	}
+}
+
+#define ADC_NUMBER	4
+static uint8_t sequence[1];
+static uint8_t adcChannels[ADC_NUMBER];
+
+void adc_init(void)
+{
+    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
+    		GPIO_CNF_INPUT_ANALOG, GPIO0);
+
+    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
+    		GPIO_CNF_INPUT_ANALOG, GPIO1);
+
+    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
+    		GPIO_CNF_INPUT_ANALOG, GPIO2);
+
+    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
+    		GPIO_CNF_INPUT_ANALOG, GPIO3);
+
+
+    int i=0;
+    for (i=0; i<ADC_NUMBER; i++)
+    {
+    	adcChannels[i] = ADC_CHANNEL0 + i;
+    }
+
+	rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_ADC1EN);
+	adc_power_off(ADC1);
+	rcc_peripheral_reset(&RCC_APB2RSTR, RCC_APB2RSTR_ADC1RST);
+	rcc_peripheral_clear_reset(&RCC_APB2RSTR, RCC_APB2RSTR_ADC1RST);
+	rcc_set_adcpre(RCC_CFGR_ADCPRE_PCLK2_DIV2);
+	adc_set_dual_mode(ADC_CR1_DUALMOD_IND);
+	adc_disable_scan_mode(ADC1);
+	adc_set_single_conversion_mode(ADC1);
+
+    for (i=0; i<ADC_NUMBER; i++)
+    {
+    	adc_set_sample_time(ADC1, adcChannels[i], ADC_SMPR_SMP_1DOT5CYC);
+    }
+
+	adc_enable_external_trigger_regular(ADC1, ADC_CR2_EXTSEL_SWSTART);
+	adc_set_right_aligned(ADC1);
+	adc_power_on(ADC1);
+	adc_reset_calibration(ADC1);
+	adc_calibrate(ADC1);
+}
+
+void adc_read(uint32_t * adcReadout)
+{
+	int i = 0;
+    for (i = 0; i < ADC_NUMBER; i++)
+    {
+		sequence[0] = adcChannels[i];
+		adc_set_regular_sequence(ADC1, 1, sequence);
+		adc_start_conversion_regular(ADC1);
+
+		while (! adc_eoc(ADC1));
+		*adcReadout = adc_read_regular(ADC1);
+
+		adcReadout++;
+    }
+}
+
+#define BUTTONS_NUMBER 9
 
 int main(void)
 {
@@ -64,67 +170,26 @@ int main(void)
     int pos = MIN_POSITION + (MAX_POSITION - MIN_POSITION) / 2;
     int step = 100;
 
-/////////////////////////////////uart
 
-    // todo: send_string; uart_init
-
-    rcc_periph_clock_enable(RCC_GPIOA);
-    rcc_periph_clock_enable(RCC_USART1);
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
-    		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
-
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
-        		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_RX);
-
-    usart_set_baudrate(USART1, 9600);
-    usart_set_databits(USART1, 8);
-    usart_set_stopbits(USART1, USART_STOPBITS_1);
-    usart_set_parity(USART1, USART_PARITY_NONE);
-    usart_set_mode(USART1, USART_MODE_TX_RX);
-    usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
-    usart_enable(USART1);
-
-
-/////////////////////////////
-
-/////////////////////////////ADC
-    //todo: adc_init; correct set_sample time;
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_ANALOG, GPIO0);
-
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_ANALOG, GPIO1);
-
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_ANALOG, GPIO2);
-
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_ANALOG, GPIO3);
-
-    uint8_t adcChannels[4]={ADC_CHANNEL0, ADC_CHANNEL1, ADC_CHANNEL2, ADC_CHANNEL3};
-    uint8_t sequence[1]={ADC_CHANNEL0};
-
-	rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_ADC1EN);
-	adc_power_off(ADC1);
-	rcc_peripheral_reset(&RCC_APB2RSTR, RCC_APB2RSTR_ADC1RST);
-	rcc_peripheral_clear_reset(&RCC_APB2RSTR, RCC_APB2RSTR_ADC1RST);
-	rcc_set_adcpre(RCC_CFGR_ADCPRE_PCLK2_DIV2);
-	adc_set_dual_mode(ADC_CR1_DUALMOD_IND);
-	adc_disable_scan_mode(ADC1);
-	adc_set_single_conversion_mode(ADC1);
-	adc_set_sample_time(ADC1, ADC_CHANNEL0, ADC_SMPR_SMP_1DOT5CYC); //make it in a loop?
-	adc_set_sample_time(ADC1, ADC_CHANNEL1, ADC_SMPR_SMP_1DOT5CYC);
-	adc_set_sample_time(ADC1, ADC_CHANNEL2, ADC_SMPR_SMP_1DOT5CYC);
-	adc_set_sample_time(ADC1, ADC_CHANNEL3, ADC_SMPR_SMP_1DOT5CYC);
-	adc_enable_external_trigger_regular(ADC1, ADC_CR2_EXTSEL_SWSTART);
-	adc_set_right_aligned(ADC1);
-	adc_power_on(ADC1);
-	adc_reset_calibration(ADC1);
-	adc_calibrate(ADC1);
+    serial_init(9600);
+    adc_init();
 
 	uint32_t adcValue = 0;
 	uint8_t chars[12] = {0,};
-	uint32_t index=0;
+	uint32_t length=0;
+	uint32_t adcBuf[ADC_NUMBER];
+
+	//buttons
+   static const uint16_t buttons[BUTTONS_NUMBER] = {GPIO3, GPIO4, GPIO5, GPIO6, GPIO7, GPIO8, GPIO9, GPIO12, GPIO13};
+   uint16_t buttonsState=0;
+
+   rcc_periph_clock_enable(RCC_GPIOB);
+
+   for(int i = 0; i < BUTTONS_NUMBER; i++)
+   {
+	    gpio_set_mode(GPIOB, GPIO_MODE_INPUT,
+	    		GPIO_CNF_INPUT_PULL_UPDOWN, buttons[i]);
+   }
 
     while (1)
     {
@@ -141,24 +206,36 @@ int main(void)
 
         gpio_toggle(GPIOC, GPIO13);
 
-        for (int chans=0; chans<4; chans++)
+//        adc_read(adcBuf);
+//
+//        for (int chans=0; chans<ADC_NUMBER; chans++)
+//        {
+//			length = itoa(adcBuf[chans], chars);
+//			serial_write(chars, length);
+//
+//			serial_putc('\n');
+//			serial_putc('\r');
+//        }
+
+//        if(gpio_get(GPIOB, GPIO3))
+//        {
+//        	buttonsState |= 1<< 1;
+//        } else
+//        {
+//        	buttonsState &= !(1<<1);
+//        }
+
+//array of pins and in for loop; can we do better? any more fancy way?
+        buttonsState = 0;
+        for(int i = 0; i < BUTTONS_NUMBER; i++)
         {
-			sequence[0]=adcChannels[chans];
-			adc_set_regular_sequence(ADC1, 1, sequence);
-			adc_start_conversion_regular(ADC1);
-
-			while (! adc_eoc(ADC1));
-			adcValue = adc_read_regular(ADC1);
-
-			index = itoa(adcValue, chars);
-
-			for (int i=0; i<index; i++)
-			{
-				usart_send_blocking(USART1, '0'+ chars[i]);
-			}
-			usart_send_blocking(USART1, '\n');
-			usart_send_blocking(USART1, '\r');
+        	buttonsState |= (gpio_get(GPIOB, buttons[i]) && buttons[i]) << i;
         }
+
+		length = itoa(buttonsState, chars);
+		serial_write(chars, length);
+		serial_putc('\n');
+		serial_putc('\r');
 
 		  delay_ms(50);
     }
