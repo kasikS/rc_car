@@ -1,6 +1,6 @@
 BINARY = rc_car
 DEVICE = stm32f103c8
-OBJS   = delay_timer.o servo.o
+OBJS   = delay_timer.o servo.o serial.o adc.o buttons.o
 
 LIBNAME = opencm3_stm32f1
 DEFS    += -DSTM32F1

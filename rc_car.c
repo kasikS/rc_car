@@ -19,140 +19,14 @@
 #include <stdio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/usart.h>
-#include <libopencm3/stm32/adc.h>
+#include <libopencm3/stm32/spi.h>
 
 #include "delay_timer.h"
 #include "servo.h"
+#include "serial.h"
+#include "adc.h"
+#include "buttons.h"
 
-uint32_t itoa(uint32_t number, char stringArray[])
-{
-	uint32_t temp = 0;
-	uint32_t digits = 0;
-	uint32_t i = 0;
-
-	if (number == 0)
-	{
-		stringArray[0] = '0';
-		digits++;
-	}
-
-	while(number!=0)
-	{
-		stringArray[digits] = '0' + number % 10;
-		number = number/10;
-		digits++;
-	}
-
-	for(i=0; i< (digits/2); i++)
-	{
-		temp = stringArray[i];
-		stringArray[i] = stringArray[digits-1-i];
-		stringArray[digits-1-i] = temp;
-	}
-
-	return digits;
-}
-
-void serial_init(uint32_t baud)
-{
-    rcc_periph_clock_enable(RCC_GPIOA);
-    rcc_periph_clock_enable(RCC_USART1);
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
-    		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
-
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
-        		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_RX);
-
-    usart_set_baudrate(USART1, baud);
-    usart_set_databits(USART1, 8);
-    usart_set_stopbits(USART1, USART_STOPBITS_1);
-    usart_set_parity(USART1, USART_PARITY_NONE);
-    usart_set_mode(USART1, USART_MODE_TX_RX);
-    usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
-    usart_enable(USART1);
-}
-
-void serial_putc(const char c)
-{
-		/* sends a single character*/
-		usart_send_blocking(USART1, c);
-}
-
-void serial_write(const char *string, int len)
-{
-	int i;
-	for(i=0; i<len; i++)
-	{
-		/* Puts data into buffer, sends the data*/
-		serial_putc(*string);
-		++string;
-	}
-}
-
-#define ADC_NUMBER	4
-static uint8_t sequence[1];
-static uint8_t adcChannels[ADC_NUMBER];
-
-void adc_init(void)
-{
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_ANALOG, GPIO0);
-
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_ANALOG, GPIO1);
-
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_ANALOG, GPIO2);
-
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_ANALOG, GPIO3);
-
-
-    int i=0;
-    for (i=0; i<ADC_NUMBER; i++)
-    {
-    	adcChannels[i] = ADC_CHANNEL0 + i;
-    }
-
-	rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_ADC1EN);
-	adc_power_off(ADC1);
-	rcc_peripheral_reset(&RCC_APB2RSTR, RCC_APB2RSTR_ADC1RST);
-	rcc_peripheral_clear_reset(&RCC_APB2RSTR, RCC_APB2RSTR_ADC1RST);
-	rcc_set_adcpre(RCC_CFGR_ADCPRE_PCLK2_DIV2);
-	adc_set_dual_mode(ADC_CR1_DUALMOD_IND);
-	adc_disable_scan_mode(ADC1);
-	adc_set_single_conversion_mode(ADC1);
-
-    for (i=0; i<ADC_NUMBER; i++)
-    {
-    	adc_set_sample_time(ADC1, adcChannels[i], ADC_SMPR_SMP_1DOT5CYC);
-    }
-
-	adc_enable_external_trigger_regular(ADC1, ADC_CR2_EXTSEL_SWSTART);
-	adc_set_right_aligned(ADC1);
-	adc_power_on(ADC1);
-	adc_reset_calibration(ADC1);
-	adc_calibrate(ADC1);
-}
-
-void adc_read(uint32_t * adcReadout)
-{
-	int i = 0;
-    for (i = 0; i < ADC_NUMBER; i++)
-    {
-		sequence[0] = adcChannels[i];
-		adc_set_regular_sequence(ADC1, 1, sequence);
-		adc_start_conversion_regular(ADC1);
-
-		while (! adc_eoc(ADC1));
-		*adcReadout = adc_read_regular(ADC1);
-
-		adcReadout++;
-    }
-}
-
-#define BUTTONS_NUMBER 9
 
 int main(void)
 {
@@ -160,6 +34,7 @@ int main(void)
     rcc_periph_clock_enable(RCC_GPIOC);
 
     delay_init();
+
     servo_init();
 
     /* LED pin */
@@ -173,24 +48,48 @@ int main(void)
 
     serial_init(9600);
     adc_init();
+    buttons_init();
 
-	uint32_t adcValue = 0;
+	//buffer for characters after itoa
 	uint8_t chars[12] = {0,};
+
+	//number of characters to send via serial
 	uint32_t length=0;
+
+	//array to store ADC counts
 	uint32_t adcBuf[ADC_NUMBER];
 
-	//buttons
-   static const uint16_t buttons[BUTTONS_NUMBER] = {GPIO3, GPIO4, GPIO5, GPIO6, GPIO7, GPIO8, GPIO9, GPIO12, GPIO13};
-   uint16_t buttonsState=0;
+	//state of the buttons
+	uint16_t buttonsState = 0;
 
-   rcc_periph_clock_enable(RCC_GPIOB);
+	/////////////spi
+	rcc_periph_clock_enable(RCC_GPIOA);
+	rcc_periph_clock_enable(RST_SPI1);
+    rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_SPI1EN);
 
-   for(int i = 0; i < BUTTONS_NUMBER; i++)
-   {
-	    gpio_set_mode(GPIOB, GPIO_MODE_INPUT,
-	    		GPIO_CNF_INPUT_PULL_UPDOWN, buttons[i]);
-   }
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+    		GPIO_CNF_OUTPUT_PUSHPULL, GPIO_SPI1_NSS); //ss; correct modes? ok that we control it manually?
+    gpio_set(GPIOA, GPIO_SPI1_NSS);
 
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+    		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI1_SCK); //sck
+
+    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
+    		GPIO_CNF_INPUT_FLOAT, GPIO_SPI1_MISO); //miso
+
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+    		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI1_MOSI); //mosi
+
+    spi_reset(SPI1);
+
+    spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_4, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+			SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_LSBFIRST);
+    //what is the value of fpclk? 72 MHz? do we send 8 or 16 bits?
+
+    spi_set_full_duplex_mode(SPI1); //needed?
+    spi_enable(SPI1);
+
+    uint16_t spi_val = 0;
     while (1)
     {
 //        if(pos >= MAX_POSITION)
@@ -217,24 +116,21 @@ int main(void)
 //			serial_putc('\r');
 //        }
 
-//        if(gpio_get(GPIOB, GPIO3))
-//        {
-//        	buttonsState |= 1<< 1;
-//        } else
-//        {
-//        	buttonsState &= !(1<<1);
-//        }
+//      buttonsState = buttons_read();
+//
+//		length = itoa(buttonsState, chars);
+//		serial_write(chars, length);
 
-//array of pins and in for loop; can we do better? any more fancy way?
-        buttonsState = 0;
-        for(int i = 0; i < BUTTONS_NUMBER; i++)
-        {
-        	buttonsState |= (gpio_get(GPIOB, buttons[i]) && buttons[i]) << i;
-        }
+        gpio_clear(GPIOA, GPIO_SPI1_NSS);
 
-		length = itoa(buttonsState, chars);
-		serial_write(chars, length);
-		serial_putc('\n');
+        spi_write(SPI1, 'a');
+        spi_val = spi_read(SPI1);
+
+        gpio_set(GPIOA, GPIO_SPI1_NSS);
+
+        serial_putc(spi_val);
+
+        serial_putc('\n');
 		serial_putc('\r');
 
 		  delay_ms(50);
