@@ -14,7 +14,7 @@
 #include "buttons.h"
 
 #define BUTTONS_NUMBER 9
-static const uint16_t buttons[] = {GPIO3, GPIO4, GPIO5, GPIO6, GPIO7, GPIO8, GPIO9, GPIO12, GPIO13};
+static const uint16_t buttons[] = {GPIO4, GPIO5, GPIO6, GPIO7, GPIO8, GPIO9, GPIO12, GPIO13, GPIO14};
 
 /**
  * \brief Initializes GPIO as inputs
@@ -42,7 +42,8 @@ uint16_t buttons_read(void)
 
     for(int i = 0; i < BUTTONS_NUMBER; i++)
     {
-    	buttonsState |= (gpio_get(GPIOB, buttons[i]) && buttons[i]) << i;
+    	if(gpio_get(GPIOB, buttons[i]))
+    		buttonsState |= (1 << i);
     }
 
     return buttonsState;
