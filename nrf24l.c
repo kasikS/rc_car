@@ -48,12 +48,12 @@
 
 
 // Chip select control
-static inline void nrf24l_cs_enable() { gpio_clear(GPIOA, GPIO_SPI1_NSS); }
-static inline void nrf24l_cs_disable() { gpio_set(GPIOA, GPIO_SPI1_NSS); }
+static inline void nrf24l_cs_enable(void) { gpio_clear(GPIOA, GPIO_SPI1_NSS); }
+static inline void nrf24l_cs_disable(void) { gpio_set(GPIOA, GPIO_SPI1_NSS); }
 
 // RF enable
-static inline void nrf24l_ce_enable() { gpio_set(NRF24L_CE_PORT, NRF24L_CE_PIN); }
-static inline void nrf24l_ce_disable() { gpio_clear(NRF24L_CE_PORT, NRF24L_CE_PIN); }
+static inline void nrf24l_ce_enable(void) { gpio_set(NRF24L_CE_PORT, NRF24L_CE_PIN); }
+static inline void nrf24l_ce_disable(void) { gpio_clear(NRF24L_CE_PORT, NRF24L_CE_PIN); }
 
 static void nrf24l_transmit(uint8_t data);
 
@@ -239,23 +239,23 @@ int nrf24l_init(void)
 
     // GPIO configuration
     // MISO, MOSI, SCK
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
     		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI1_SCK); //sck
 
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
     		GPIO_CNF_INPUT_FLOAT, GPIO_SPI1_MISO); //miso
 
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
     		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI1_MOSI); //mosi
 
     // CS
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
     		GPIO_CNF_OUTPUT_PUSHPULL, GPIO_SPI1_NSS); //ss; correct modes?
     gpio_set(GPIOA, GPIO_SPI1_NSS);
 
     // CE
-    gpio_set_mode(NRF24L_CE_PORT, GPIO_MODE_OUTPUT_50_MHZ,
-    		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, NRF24L_CE_PIN);
+    gpio_set_mode(NRF24L_CE_PORT, GPIO_MODE_OUTPUT_2_MHZ,
+    		GPIO_CNF_OUTPUT_PUSHPULL, NRF24L_CE_PIN);
 
     // INT
     gpio_set_mode(NRF24L_IRQ_PORT, GPIO_MODE_INPUT,
