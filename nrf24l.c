@@ -59,6 +59,11 @@ static void nrf24l_transmit(uint8_t data);
 
 static volatile enum MODE nrf24l_mode;
 
+inline static void spi_wait_until_finished(void)
+{
+    while (SPI_SR(SPI1) & SPI_SR_BSY);
+}
+
 // Raw communication functions
 inline static void spi_tx(uint8_t data)
 {
@@ -84,6 +89,7 @@ static void nrf24l_raw_multi(const uint8_t *tx, uint8_t *rx, uint8_t len)
         for(i = 0; i < len; ++i) spi_tx(*tx++);
     }
 
+    spi_wait_until_finished();
     nrf24l_cs_disable();
 }
 
@@ -95,6 +101,7 @@ static uint16_t nrf24l_raw_16b(uint16_t data)
     read = spi_tx_rx((uint8_t)(data >> 8));
     read <<= 8;
     read |= spi_tx_rx((uint8_t)(data & 0xff));
+    spi_wait_until_finished();
     nrf24l_cs_disable();
 
     return read;
@@ -108,6 +115,7 @@ static uint8_t nrf24l_raw_8b(uint8_t data)
     read = spi_tx_rx(data);
     nrf24l_cs_disable();
 
+    spi_wait_until_finished();
     return read;
 }
 
