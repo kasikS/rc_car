@@ -486,6 +486,7 @@ void exti0_isr(void)
     }
 
     if(status & NRF24L_STATUS_TX_DS) {
+        nrf24l_ce_disable();
 #ifdef SHOW_IRQ
         serial_putc('T');
 #endif
@@ -494,6 +495,7 @@ void exti0_isr(void)
     }
 
     if(status & NRF24L_STATUS_MAX_RT) {
+        nrf24l_ce_disable();
 #ifdef SHOW_IRQ
         serial_putc('E');
 #endif
@@ -507,22 +509,18 @@ void exti0_isr(void)
 static void nrf24l_transmit(uint8_t data)
 {
     // Full transmit command
-   static  uint8_t tx_cmd[PACKET_TOTAL_SIZE + 2] = { NRF24L_W_TX_PAYLOAD, 0, };
+   static uint8_t tx_cmd[PACKET_TOTAL_SIZE + 1] = { NRF24L_W_TX_PAYLOAD, 0, };
     // Point to the data buffer in the command above
-   static uint8_t *tx_buf = &tx_cmd[1];
+   static uint8_t * const tx_buf = &tx_cmd[1];
    static uint8_t cnt = 0;
 
    tx_buf[cnt] = data;
 
    // TODO check if fifo is not full
-//do we need to flush tx fifo?
-   /*nrf24l_get_status();*/
-	if(++cnt == PACKET_TOTAL_SIZE) {
-		cnt = 0;
-		nrf24l_set_mode(TX);
-		nrf24l_raw_multi(tx_cmd, NULL, PACKET_TOTAL_SIZE + 1);
-		nrf24l_ce_enable();
-		delay_us(12);
-		nrf24l_ce_disable();
-	}
+    if(++cnt == PACKET_TOTAL_SIZE) {
+        cnt = 0;
+        nrf24l_set_mode(TX);
+        nrf24l_raw_multi(tx_cmd, NULL, PACKET_TOTAL_SIZE + 1);
+        nrf24l_ce_enable(); /* ce is disabled in the IRQ handler */
+    }
 }
