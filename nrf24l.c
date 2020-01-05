@@ -63,7 +63,7 @@ static volatile enum MODE nrf24l_mode;
 inline static void spi_tx(uint8_t data)
 {
     // NOTE: you have to handle chipselect!
-	spi_send(SPI1, data);
+    spi_send(SPI1, data);
 }
 
 inline static uint8_t spi_tx_rx(uint8_t data)
@@ -229,8 +229,8 @@ static uint8_t nrf24l_get_fifo_status(void)
 int nrf24l_init(void)
 {
     // Clocks
-	rcc_periph_clock_enable(RCC_GPIOA);
-	rcc_periph_clock_enable(RST_SPI1);
+    rcc_periph_clock_enable(RCC_GPIOA);
+    rcc_periph_clock_enable(RST_SPI1);
     rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_SPI1EN);
 
     /* Enable AFIO clock. */
@@ -240,26 +240,26 @@ int nrf24l_init(void)
     // GPIO configuration
     // MISO, MOSI, SCK
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
-    		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI1_SCK); //sck
+            GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI1_SCK); //sck
 
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_FLOAT, GPIO_SPI1_MISO); //miso
+            GPIO_CNF_INPUT_FLOAT, GPIO_SPI1_MISO); //miso
 
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
-    		GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI1_MOSI); //mosi
+            GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI1_MOSI); //mosi
 
     // CS
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
-    		GPIO_CNF_OUTPUT_PUSHPULL, GPIO_SPI1_NSS); //ss; correct modes?
+            GPIO_CNF_OUTPUT_PUSHPULL, GPIO_SPI1_NSS); //ss; correct modes?
     gpio_set(GPIOA, GPIO_SPI1_NSS);
 
     // CE
     gpio_set_mode(NRF24L_CE_PORT, GPIO_MODE_OUTPUT_2_MHZ,
-    		GPIO_CNF_OUTPUT_PUSHPULL, NRF24L_CE_PIN);
+            GPIO_CNF_OUTPUT_PUSHPULL, NRF24L_CE_PIN);
 
     // INT
     gpio_set_mode(NRF24L_IRQ_PORT, GPIO_MODE_INPUT,
-    		GPIO_CNF_INPUT_PULL_UPDOWN, NRF24L_IRQ_PIN);
+            GPIO_CNF_INPUT_PULL_UPDOWN, NRF24L_IRQ_PIN);
     gpio_set(NRF24L_IRQ_PORT, NRF24L_IRQ_PIN);
 
     // Initially disable CS & RF part
@@ -270,23 +270,23 @@ int nrf24l_init(void)
     delay_ms(11);
 
     // Configure IRQ pin interrupt
-	  nvic_enable_irq(NVIC_EXTI0_IRQ);
+    nvic_enable_irq(NVIC_EXTI0_IRQ);
 
-	  rcc_periph_clock_enable(RCC_GPIOB);
-	  rcc_periph_clock_enable(RCC_AFIO);
-	  gpio_set_mode(NRF24L_IRQ_PORT, GPIO_MODE_INPUT,
-			  GPIO_CNF_INPUT_PULL_UPDOWN, NRF24L_IRQ_PIN);
-	  gpio_clear(NRF24L_IRQ_PORT,NRF24L_IRQ_PIN);
+    rcc_periph_clock_enable(RCC_GPIOB);
+    rcc_periph_clock_enable(RCC_AFIO);
+    gpio_set_mode(NRF24L_IRQ_PORT, GPIO_MODE_INPUT,
+            GPIO_CNF_INPUT_PULL_UPDOWN, NRF24L_IRQ_PIN);
+    gpio_clear(NRF24L_IRQ_PORT,NRF24L_IRQ_PIN);
 
-	  exti_select_source(EXTI0, NRF24L_IRQ_PORT);
-	  exti_set_trigger(EXTI0, EXTI_TRIGGER_FALLING);
-	  exti_enable_request(EXTI0);
+    exti_select_source(EXTI0, NRF24L_IRQ_PORT);
+    exti_set_trigger(EXTI0, EXTI_TRIGGER_FALLING);
+    exti_enable_request(EXTI0);
 
     // SPI configuration
     //TODO check if correct settings
     spi_reset(SPI1);
     spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_32, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
-    			SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
+                SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
         //what is the value of fpclk? 72 MHz?
 
     spi_set_full_duplex_mode(SPI1);
@@ -363,7 +363,7 @@ static uint8_t nrf24l_rx_data_ready(void)
 
 int nrf24l_putc(char data)
 {
-	nrf24l_transmit(data);
+    nrf24l_transmit(data);
 
     return pdTRUE;
 }
@@ -396,12 +396,12 @@ static int buffer_index;
 
 int nrf24l_getc(char *c)
 {
-	if (buffer_index > PACKET_TOTAL_SIZE)
-	{
-		return 1;
-	}
-	*c = rx_buffer[buffer_index];
-	buffer_index++;
+    if (buffer_index > PACKET_TOTAL_SIZE)
+    {
+        return 1;
+    }
+    *c = rx_buffer[buffer_index];
+    buffer_index++;
     return 0;
 }
 
@@ -459,54 +459,48 @@ void nrf24l_set_power(void)
 
 void exti0_isr(void)
 {
-	exti_reset_request(EXTI0);
+    exti_reset_request(EXTI0);
     uint8_t status, i, irq_src;
 
+    status = nrf24l_get_status();
+    irq_src = status & (NRF24L_STATUS_RX_DR | NRF24L_STATUS_TX_DS |
+                        NRF24L_STATUS_MAX_RT);
 
-	status = nrf24l_get_status();
-	irq_src = status & (NRF24L_STATUS_RX_DR | NRF24L_STATUS_TX_DS |
-						NRF24L_STATUS_MAX_RT);
-
-	if(status & NRF24L_STATUS_RX_DR) {
+    if(status & NRF24L_STATUS_RX_DR) {
 #ifdef SHOW_IRQ
-                serial_putc('R');
+        serial_putc('R');
 #endif
 
-	nrf24l_read_fifo(rx_buffer);
-	// rx_buffer[0] contains shit, start with rx_buffer[1]
-	buffer_index = 1;
+        nrf24l_read_fifo(rx_buffer);
+        // rx_buffer[0] contains shit, start with rx_buffer[1]
+        buffer_index = 1;
+    }
 
-	}
-	if(status & NRF24L_STATUS_TX_DS) {
+    if(status & NRF24L_STATUS_TX_DS) {
 #ifdef SHOW_IRQ
-                serial_putc('T');
+        serial_putc('T');
 #endif
 
-			nrf24l_set_mode(RX);
-		}
+        nrf24l_set_mode(RX);
+    }
 
+    if(status & NRF24L_STATUS_MAX_RT) {
 #ifdef SHOW_IRQ
-            if(status & NRF24L_STATUS_MAX_RT) {
-                serial_putc('E');
-                leds_off(GREEN);
-            } else {
-                leds_on(GREEN);
-            }
+        serial_putc('E');
 #endif
+    }
 
-	// Clear IRQ
-	nrf24l_write_reg(NRF24L_STATUS, irq_src);
+    // Clear IRQ
+    nrf24l_write_reg(NRF24L_STATUS, irq_src);
 }
 
 
 static void nrf24l_transmit(uint8_t data)
 {
-
     // Full transmit command
    static  uint8_t tx_cmd[PACKET_TOTAL_SIZE + 2] = { NRF24L_W_TX_PAYLOAD, 0, };
     // Point to the data buffer in the command above
    static uint8_t *tx_buf = &tx_cmd[1];
-    /*uint8_t tx_buf[PACKET_TOTAL_SIZE + 1] = {0,};*/
    static uint8_t cnt = 0;
 
    tx_buf[cnt] = data;
