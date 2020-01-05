@@ -345,6 +345,7 @@ int nrf24l_init(void)
 
     nrf24l_clear_irq();
     nrf24l_set_mode(STANDBY);
+    nrf24l_set_mode(RX);
 
     return 0;
 }
