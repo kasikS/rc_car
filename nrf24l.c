@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "nrf24l.h"
 #include "nrf24l_reg.h"
@@ -27,6 +28,8 @@
 
 #define FALLING 0
 #define RISING 1
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
 
 #ifdef  USE_FULL_ASSERT
 
@@ -401,17 +404,48 @@ int nrf24l_write(const char *string, int len)
 }
 
 static uint8_t rx_buffer[PACKET_TOTAL_SIZE + 1];
-static int buffer_index;
+static uint8_t * const rx_packet = &rx_buffer[1];
+static unsigned int rx_buffer_idx = 0;
 
 int nrf24l_getc(char *c)
 {
-    if (buffer_index > PACKET_TOTAL_SIZE)
+    int ret;
+    exti_disable_request(EXTI0);
+
+    if (rx_buffer_idx >= PACKET_TOTAL_SIZE)
     {
-        return 1;
+        ret = 1;
     }
-    *c = rx_buffer[buffer_index];
-    buffer_index++;
-    return 0;
+    else
+    {
+        *c = rx_buffer[rx_buffer_idx];
+        rx_buffer_idx++;
+        ret = 0;
+    }
+
+    exti_enable_request(EXTI0);
+    return ret;
+}
+
+int nrf24l_copy_buffer(uint8_t *dest, unsigned int len)
+{
+    int ret;
+    exti_disable_request(EXTI0);
+
+    if (rx_buffer_idx >= PACKET_TOTAL_SIZE)
+    {
+        ret = 0;
+    }
+    else
+    {
+        unsigned int byte_count = MIN(len, PACKET_TOTAL_SIZE - rx_buffer_idx);
+        memcpy(dest, rx_packet, byte_count);
+        rx_buffer_idx += byte_count;
+        ret = byte_count;
+    }
+
+    exti_enable_request(EXTI0);
+    return ret;
 }
 
 uint8_t nrf24l_get_status(void)
@@ -481,8 +515,7 @@ void exti0_isr(void)
 #endif
 
         nrf24l_read_fifo(rx_buffer);
-        // rx_buffer[0] contains shit, start with rx_buffer[1]
-        buffer_index = 1;
+        rx_buffer_idx = 0;
     }
 
     if(status & NRF24L_STATUS_TX_DS) {

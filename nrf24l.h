@@ -62,6 +62,15 @@ int nrf24l_write(const char *string, int len);
 int nrf24l_getc(char *c);
 
 /**
+ * @brief Gets contents of the packet buffer.
+ * @param dest is a pointer to the destination buffer, where the packet will be stored.
+ * If there is nothing in the buffer, it will not be modified.
+ * @param len is the destination buffer size.
+ * @return number of saved bytes.
+ */
+int nrf24l_copy_buffer(uint8_t *dest, unsigned int len);
+
+/**
  * @brief Checks the module status. See nrf24l_STATUS_xxx defines for details.
  * @return Status word.
  */
