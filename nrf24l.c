@@ -77,8 +77,7 @@ inline static void spi_tx(uint8_t data)
 inline static uint8_t spi_tx_rx(uint8_t data)
 {
     // NOTE: you have to handle chipselect!
-    spi_tx(data);
-    return spi_read(SPI1);
+    return spi_xfer(SPI1, data);
 }
 
 static void nrf24l_raw_multi(const uint8_t *tx, uint8_t *rx, uint8_t len)
