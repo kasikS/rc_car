@@ -33,31 +33,39 @@ const int MAX_POSITION = 2700;
 // One millisecond [counter units]
 #define MILLISECOND ((uint32_t)(MAX_DUTY / PERIOD))
 
+ /* servo connected to PA8 */
+#define SERVO_TIM       TIM1
+#define SERVO_RCC_TIM   RCC_TIM1
+#define SERVO_OC        TIM_OC1
+#define SERVO_GPIO      GPIOA
+#define SERVO_TIM_CH    GPIO_TIM1_CH1
+
 void servo_init(void)
 {
-    rcc_periph_clock_enable(RCC_TIM2);
+    rcc_periph_clock_enable(SERVO_RCC_TIM);
     rcc_periph_clock_enable(RCC_GPIOA);
     rcc_periph_clock_enable(RCC_AFIO);
 
     // I/O
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
-                    GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_TIM2_CH2); /* PA1 */
+    gpio_set_mode(SERVO_GPIO, GPIO_MODE_OUTPUT_2_MHZ,
+                GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, SERVO_TIM_CH);
 
     // Timer
-    timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
-    timer_set_prescaler(TIM2, 2 * rcc_apb1_frequency / (TIMER_CLK * 1000) - 1);
-    timer_set_repetition_counter(TIM2, 0);
-    timer_enable_preload(TIM2);
-    timer_continuous_mode(TIM2);
-    timer_set_period(TIM2, MAX_DUTY);
+    timer_set_mode(SERVO_TIM, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
+    timer_set_prescaler(SERVO_TIM, 2 * rcc_apb1_frequency / (TIMER_CLK * 1000) - 1);
+    timer_set_repetition_counter(SERVO_TIM, 0);
+    timer_enable_preload(SERVO_TIM);
+    timer_continuous_mode(SERVO_TIM);
+    timer_set_period(SERVO_TIM, MAX_DUTY);
 
-    timer_disable_oc_output(TIM2, TIM_OC2);
-    timer_set_oc_mode(TIM2, TIM_OC2, TIM_OCM_PWM1);
-    timer_set_oc_value(TIM2, TIM_OC2, 0);
-    timer_enable_oc_output(TIM2, TIM_OC2);
+    timer_disable_oc_output(SERVO_TIM, SERVO_OC);
+    timer_set_oc_mode(SERVO_TIM, SERVO_OC, TIM_OCM_PWM1);
+    timer_set_oc_value(SERVO_TIM, SERVO_OC, 0);
 
-    timer_generate_event(TIM2, TIM_EGR_UG);
-    timer_enable_counter(TIM2);
+    timer_enable_oc_output(SERVO_TIM, SERVO_OC);
+
+    timer_enable_break_main_output(SERVO_TIM);
+    timer_enable_counter(SERVO_TIM);
 }
 
 void servo_set(int position)
@@ -75,5 +83,5 @@ void servo_set(int position)
     // max position for tHI = 2 ms
     int val = (position * MILLISECOND) / 1000;
 
-    timer_set_oc_value(TIM2, TIM_OC2, val);
+    timer_set_oc_value(SERVO_TIM, SERVO_OC, val);
 }
