@@ -487,9 +487,9 @@ void exti0_isr(void)
 
     if(status & NRF24L_STATUS_TX_DS) {
         nrf24l_ce_disable();
-#ifdef SHOW_IRQ
+//#ifdef SHOW_IRQ
         serial_putc('T');
-#endif
+//#endif
 
         nrf24l_set_mode(RX);
     }

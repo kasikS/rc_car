@@ -20,7 +20,7 @@
  * \param number is an integer to be converted
  * \param stringArray is an output array
  */
-uint32_t itoa(uint32_t number, char stringArray[])
+uint32_t toa(uint32_t number, char stringArray[])
 {
 	uint32_t temp = 0;
 	uint32_t digits = 0;
@@ -47,6 +47,26 @@ uint32_t itoa(uint32_t number, char stringArray[])
 	}
 
 	return digits;
+}
+
+/**
+ * \brief Converts an integer to array of bits
+ *
+ * \param number is an integer to be converted
+ * \param stringArray is an output array
+ */
+void to_bit_string(uint32_t number, char stringArray[])
+{
+	uint32_t mask = 0;
+	uint32_t digits = 0;
+	uint32_t i = 0;
+
+    mask =0;
+    for(int i=0; i<16; i++)
+    {
+    	mask= 1 << (16-i-1);
+    	stringArray[i] = (number & mask)? '1':'0';
+    }
 }
 
 /**

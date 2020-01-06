@@ -50,7 +50,7 @@ void adc_init(void)
 
     for (i = 0; i<ADC_NUMBER; i++)
     {
-    	adc_set_sample_time(ADC1, adcChannels[i], ADC_SMPR_SMP_1DOT5CYC);
+    	adc_set_sample_time(ADC1, i, ADC_SMPR_SMP_1DOT5CYC);
     }
 
 	adc_enable_external_trigger_regular(ADC1, ADC_CR2_EXTSEL_SWSTART);
@@ -70,7 +70,7 @@ void adc_read(uint32_t * adcReadout)
 	int i = 0;
     for (i = 0; i < ADC_NUMBER; i++)
     {
-		sequence[0] = adcChannels[i];
+		sequence[0] = i;
 		adc_set_regular_sequence(ADC1, 1, sequence);
 		adc_start_conversion_regular(ADC1);
 
