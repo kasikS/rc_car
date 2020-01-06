@@ -469,7 +469,7 @@ void nrf24l_set_power(void)
 void exti0_isr(void)
 {
     exti_reset_request(EXTI0);
-    uint8_t status, i, irq_src;
+    uint8_t status, irq_src;
 
     status = nrf24l_get_status();
     irq_src = status & (NRF24L_STATUS_RX_DR | NRF24L_STATUS_TX_DS |
