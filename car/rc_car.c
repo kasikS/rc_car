@@ -20,6 +20,7 @@
 
 #include "delay_timer.h"
 #include "servo.h"
+#include "motor.h"
 #include "serial.h"
 #include "nrf24l.h"
 #include "link.h"
@@ -38,6 +39,7 @@ int main(void)
     delay_init();
     serial_init(9600);
     servo_init();
+    motor_init();
     nrf24l_init();
 
     while (1)
@@ -45,6 +47,11 @@ int main(void)
         if (!nrf24l_copy_buffer((uint8_t*) &radio_data, PACKET_TOTAL_SIZE))
         {
             servo_set(MIN_POSITION + (radio_data.adc1 * (MAX_POSITION - MIN_POSITION)) / 4096);
+            motor_run(FORWARD, 4096 - radio_data.adc2);
+        }
+        else
+        {
+            motor_stop();
         }
 
         gpio_toggle(GPIOC, GPIO13);
