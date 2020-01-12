@@ -44,10 +44,10 @@ int main(void)
     {
         if (!nrf24l_copy_buffer((uint8_t*) &radio_data, PACKET_TOTAL_SIZE))
         {
-            servo_set(MIN_POSITION + (radio_data.adc0 * (MAX_POSITION - MIN_POSITION)) / 4096);
+            servo_set(MIN_POSITION + (radio_data.adc1 * (MAX_POSITION - MIN_POSITION)) / 4096);
         }
 
         gpio_toggle(GPIOC, GPIO13);
-        delay_us(1000);
+        delay_us(100);
     }
 }
