@@ -30,18 +30,24 @@
 #include "buttons.h"
 #include "nrf24l.h"
 #include "link.h"
+#include "indicators.h"
 
 int main(void)
 {
     rcc_clock_setup_in_hse_8mhz_out_72mhz();
     rcc_periph_clock_enable(RCC_GPIOC);
 
+
     delay_init();
 
-    /* LED pin */
+    /* LED pin board*/
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ,
               GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
     gpio_set(GPIOC, GPIO13);
+
+    led_init();
+    buzzer_init();
+
 
     serial_init(9600);
     adc_init();
@@ -67,8 +73,11 @@ int main(void)
 
     while (1)
     {
-
+    	//LED board
         gpio_toggle(GPIOC, GPIO13);
+
+        buzzer_toggle();
+        led_toggle();
 
         adc_read(adcBuf);
         buttonsState = buttons_read();
@@ -84,7 +93,7 @@ int main(void)
 
         nrf24l_write((const char*)&dataPacket, PACKET_TOTAL_SIZE);
 
-		delay_ms(50);
+		delay_ms(200);
     }
 }
 

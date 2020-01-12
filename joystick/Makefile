@@ -1,6 +1,6 @@
 BINARY = joystick
 DEVICE = stm32f103c8
-OBJS   = ../common/delay_timer.o  ../common/servo.o ../common/serial.o ../common/adc.o ../common/buttons.o ../common/nrf24l.o 
+OBJS   = ../common/delay_timer.o  ../common/servo.o ../common/serial.o ../common/adc.o ../common/buttons.o ../common/nrf24l.o indicators.o 
 
 LIBNAME = opencm3_stm32f1
 DEFS    += -DSTM32F1
