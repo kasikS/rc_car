@@ -76,8 +76,8 @@ int main(void)
     	//LED board
         gpio_toggle(GPIOC, GPIO13);
 
-        buzzer_toggle();
-        led_toggle();
+//        buzzer_toggle();
+//        led_toggle();
 
         adc_read(adcBuf);
         buttonsState = buttons_read();
@@ -93,7 +93,7 @@ int main(void)
 
         nrf24l_write((const char*)&dataPacket, PACKET_TOTAL_SIZE);
 
-		delay_ms(200);
+		delay_ms(50);
     }
 }
 
