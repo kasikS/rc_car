@@ -58,11 +58,10 @@ uint32_t toa(uint32_t number, char stringArray[])
 void to_bit_string(uint32_t number, char stringArray[])
 {
 	uint32_t mask = 0;
-	uint32_t digits = 0;
 	uint32_t i = 0;
 
     mask =0;
-    for(int i=0; i<16; i++)
+    for(i=0; i<16; i++)
     {
     	mask= 1 << (16-i-1);
     	stringArray[i] = (number & mask)? '1':'0';

@@ -1,12 +1,13 @@
 BINARY = rc_car
 DEVICE = stm32f103c8
-OBJS   = delay_timer.o servo.o serial.o adc.o buttons.o nrf24l.o
+OBJS   = ../common/delay_timer.o  ../common/servo.o ../common/serial.o ../common/adc.o ../common/buttons.o ../common/nrf24l.o 
 
 LIBNAME = opencm3_stm32f1
 DEFS    += -DSTM32F1
 
 FP_FLAGS        ?= -msoft-float
 ARCH_FLAGS      = -mthumb -mcpu=cortex-m3 $(FP_FLAGS) -mfix-cortex-m3-ldrd
+DEFS            = -I../common
 
 OOCD            ?= openocd
 OOCD_INTERFACE  ?= jlink
