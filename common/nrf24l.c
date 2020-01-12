@@ -240,6 +240,8 @@ int nrf24l_init(void)
 {
     // Clocks
     rcc_periph_clock_enable(RCC_GPIOA);
+    rcc_periph_clock_enable(RCC_GPIOB);
+    rcc_periph_clock_enable(RCC_AFIO);
     rcc_periph_clock_enable(RST_SPI1);
     rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_SPI1EN);
 
@@ -282,8 +284,6 @@ int nrf24l_init(void)
     // Configure IRQ pin interrupt
     nvic_enable_irq(NVIC_EXTI0_IRQ);
 
-    rcc_periph_clock_enable(RCC_GPIOB);
-    rcc_periph_clock_enable(RCC_AFIO);
     gpio_set_mode(NRF24L_IRQ_PORT, GPIO_MODE_INPUT,
             GPIO_CNF_INPUT_PULL_UPDOWN, NRF24L_IRQ_PIN);
     gpio_clear(NRF24L_IRQ_PORT,NRF24L_IRQ_PIN);
