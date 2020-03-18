@@ -115,9 +115,9 @@ static uint8_t nrf24l_raw_8b(uint8_t data)
 
     nrf24l_cs_enable();
     read = spi_tx_rx(data);
+    spi_wait_until_finished();
     nrf24l_cs_disable();
 
-    spi_wait_until_finished();
     return read;
 }
 
