@@ -44,15 +44,16 @@ int main(void)
 
     while (1)
     {
-        if (!nrf24l_copy_buffer((uint8_t*) &radio_data, PACKET_TOTAL_SIZE))
+        if (nrf24l_copy_buffer((uint8_t*) &radio_data, PACKET_TOTAL_SIZE))
         {
             servo_set(MIN_POSITION + (radio_data.adc1 * (MAX_POSITION - MIN_POSITION)) / 4096);
             motor_run(FORWARD, 4096 - radio_data.adc2);
         }
-        else
+        // TODO disable the main motor when packets do not arrive for some time
+        /*else
         {
             motor_stop();
-        }
+        }*/
 
         gpio_toggle(GPIOC, GPIO13);
         delay_us(100);
