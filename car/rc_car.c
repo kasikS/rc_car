@@ -28,7 +28,7 @@
 int main(void)
 {
     struct packet radio_data;
-    rcc_clock_setup_in_hse_8mhz_out_72mhz();
+    /*rcc_clock_setup_in_hse_8mhz_out_72mhz();*/
 
     /* LED pin */
     rcc_periph_clock_enable(RCC_GPIOC);
