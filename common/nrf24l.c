@@ -423,6 +423,12 @@ int nrf24l_getc(char *c)
     }
 
     exti_enable_request(EXTI0);
+
+    if (!gpio_get(NRF24L_IRQ_PORT, NRF24L_IRQ_PIN))
+    {
+        exti0_isr();
+    }
+
     return ret;
 }
 
@@ -444,6 +450,12 @@ int nrf24l_copy_buffer(uint8_t *dest, unsigned int len)
     }
 
     exti_enable_request(EXTI0);
+
+    if (!gpio_get(NRF24L_IRQ_PORT, NRF24L_IRQ_PIN))
+    {
+        exti0_isr();
+    }
+
     return ret;
 }
 
