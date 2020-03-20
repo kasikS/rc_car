@@ -413,13 +413,13 @@ int nrf24l_getc(char *c)
 
     if (rx_buffer_idx >= PACKET_TOTAL_SIZE)
     {
-        ret = 1;
+        ret = 0;
     }
     else
     {
         *c = rx_buffer[rx_buffer_idx];
         rx_buffer_idx++;
-        ret = 0;
+        ret = 1;
     }
 
     exti_enable_request(EXTI0);
