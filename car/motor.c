@@ -39,6 +39,12 @@
 #define MOTOR_TIM_CH_A  GPIO_TIM4_CH1
 #define MOTOR_TIM_CH_B  GPIO_TIM4_CH2
 
+#define MOTOR_FAULT_PORT GPIOB
+#define MOTOR_FAULT_PIN  GPIO2
+
+#define MOTOR_SLEEP_PORT GPIOB
+#define MOTOR_SLEEP_PIN  GPIO3
+
 void motor_init()
 {
     rcc_periph_clock_enable(MOTOR_RCC_TIM);
@@ -46,10 +52,17 @@ void motor_init()
     rcc_periph_clock_enable(RCC_AFIO);
 
     // I/O
+    // disable JTAG pins (PB3)
+    gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, 0);
+
     gpio_set_mode(MOTOR_GPIO, GPIO_MODE_OUTPUT_2_MHZ,
                 GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, MOTOR_TIM_CH_A);
     gpio_set_mode(MOTOR_GPIO, GPIO_MODE_OUTPUT_2_MHZ,
                 GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, MOTOR_TIM_CH_B);
+    // TODO FAULT
+    gpio_set_mode(MOTOR_SLEEP_PORT, GPIO_MODE_OUTPUT_2_MHZ,
+            GPIO_CNF_OUTPUT_PUSHPULL, MOTOR_SLEEP_PIN);
+    gpio_set(MOTOR_SLEEP_PORT, MOTOR_SLEEP_PIN);
 
     // Timer
     timer_set_mode(MOTOR_TIM, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
