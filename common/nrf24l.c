@@ -404,7 +404,7 @@ int nrf24l_write(const char *string, int len)
 
 static uint8_t rx_buffer[PACKET_TOTAL_SIZE + 1];
 static uint8_t * const rx_packet = &rx_buffer[1];
-static unsigned int rx_buffer_idx = 0;
+static unsigned int rx_buffer_idx = PACKET_TOTAL_SIZE;
 
 int nrf24l_getc(char *c)
 {
