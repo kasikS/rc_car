@@ -38,6 +38,8 @@ int main(void)
     gpio_set(GPIOC, GPIO13);
 
     delay_init();
+    delay_ms(50);
+
     serial_init(9600);
     servo_init();
     motor_init();
