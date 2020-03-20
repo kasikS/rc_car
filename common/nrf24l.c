@@ -520,6 +520,9 @@ void exti0_isr(void)
     irq_src = status & (NRF24L_STATUS_RX_DR | NRF24L_STATUS_TX_DS |
                         NRF24L_STATUS_MAX_RT);
 
+    if (status == 0xff)
+        return;
+
     if(status & NRF24L_STATUS_RX_DR) {
 #ifdef SHOW_IRQ
         serial_putc('R');
