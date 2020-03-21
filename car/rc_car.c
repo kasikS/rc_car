@@ -49,8 +49,23 @@ int main(void)
     {
         if (nrf24l_copy_buffer((uint8_t*) &radio_data, PACKET_TOTAL_SIZE))
         {
+            unsigned int speed = 2500 - 2500 * radio_data.adc2 / 4096;
+
+            if (speed > 5)  // prevent high pitch noise on low PWM duty factor
+                speed += 1500;
+
+            if ((radio_data.buttons & 0x10) == 0x00)
+            {
+                // reverse
+                motor_run(REVERSE, speed);
+            }
+            else
+            {
+                // forward
+                motor_run(FORWARD, speed);
+            }
+
             servo_set(MIN_POSITION + (radio_data.adc1 * (MAX_POSITION - MIN_POSITION)) / 4096);
-            motor_run(FORWARD, 4096 - radio_data.adc2);
         }
         // TODO disable the main motor when packets do not arrive for some time
         /*else
