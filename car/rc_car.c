@@ -27,6 +27,7 @@
 
 int main(void)
 {
+    unsigned int last_packet_cnt = 0;
     struct packet radio_data;
     rcc_clock_setup_in_hsi_out_48mhz();
     /*rcc_clock_setup_in_hse_8mhz_out_72mhz();*/
@@ -35,10 +36,10 @@ int main(void)
     rcc_periph_clock_enable(RCC_GPIOC);
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ,
               GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
-    gpio_set(GPIOC, GPIO13);
+    gpio_clear(GPIOC, GPIO13);
 
     delay_init();
-    delay_ms(50);
+    delay_ms(50);   // perhaps nrf24l needs more time to complete reset?
 
     serial_init(9600);
     servo_init();
@@ -65,15 +66,23 @@ int main(void)
                 motor_run(FORWARD, speed);
             }
 
-            servo_set(MIN_POSITION + (radio_data.adc1 * (MAX_POSITION - MIN_POSITION)) / 4096);
+            servo_set(MAX_POSITION - (radio_data.adc1 * (MAX_POSITION - MIN_POSITION)) / 4096);
+            last_packet_cnt = 0;
         }
-        // TODO disable the main motor when packets do not arrive for some time
-        /*else
+        else
         {
-            motor_stop();
-        }*/
+            ++last_packet_cnt;
 
-        gpio_toggle(GPIOC, GPIO13);
-        delay_us(100);
+            if (last_packet_cnt == 100000)
+            {
+                // disable the main motor when packets do not arrive for some time
+                motor_stop();
+            }
+            else if (last_packet_cnt == 1000000)
+            {
+                nrf24l_init();
+                last_packet_cnt = 0;
+            }
+        }
     }
 }
