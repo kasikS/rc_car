@@ -21,8 +21,8 @@
 #include <libopencm3/stm32/timer.h>
 #include <inttypes.h>
 
-const int MIN_POSITION = 400;
-const int MAX_POSITION = 2700;
+const int MIN_POSITION = 300;
+const int MAX_POSITION = 2600;
 
 // Timer frequency [kHz]
 #define TIMER_CLK   3200
